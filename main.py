@@ -55,16 +55,15 @@ async def start_game(ctx: discord.ApplicationContext):
     if not any(role.id == int(gm_id) for role in ctx.author.roles):
         await ctx.respond("You must be a game maker to run this command.")
         return
-    await ctx.defer(ephemeral=False)
+    await ctx.defer(ephemeral=True)
     model = cur.execute("SELECT llm_model FROM settings WHERE guild_id = ?;", (guild.id,)).fetchall()[0][0]
     api_key = cur.execute("SELECT api_key FROM settings WHERE guild_id = ?;", (guild.id,)).fetchall()[0][0]
 
     completion = await acompletion(
         model=model,
         api_key=api_key,
-        # api_key="AIzaSyCSovNOK-S-hqW9k8YVVey2xB66y-Tjcp8",
-        # model="gemini/gemini-2.0-flash",
         temperature=2,
+        max_tokens=250,
         messages=[{"role": "user", "content": "tell the user -in a quirky way- that this function is NOT implemented yet, ocasionally using funny math related jokes, preferably from a pre-calc class. be AS FUNNY AS POSSIBLE, APPEALING TO AN AUDIENCE OF HIGH-SCHOOLERS"}]
     )
     response = completion.choices[0].message.content
