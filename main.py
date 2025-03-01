@@ -4,6 +4,7 @@ from utils import secrets
 from views.setup_flow import SetupFlow  # Make sure the class name matches exactly
 import json
 import sqlite3
+from  templates.response_schema import ResponseSchema
 
 # Init the discord bot
 intents = discord.Intents.default()
@@ -14,6 +15,18 @@ bot = discord.Bot(intents=intents)
 # Connect to the database
 con = sqlite3.connect('database.db')
 cur = con.cursor()
+
+# Load the system prompt
+SYSTEM_PROMPT: str = None
+with open('templates/system_prompt.txt') as f:
+    SYSTEM_PROMPT = f.read()
+    f.close()
+
+# Load the response schema
+# RESPONSE_SCHEMA: json = None
+# with open('templates/response_schema.json') as f:
+#     RESPONSE_SCHEMA = json.load(f)
+#     f.close()
 
 @bot.event
 async def on_ready():
@@ -55,18 +68,38 @@ async def start_game(ctx: discord.ApplicationContext):
     if not any(role.id == int(gm_id) for role in ctx.author.roles):
         await ctx.respond("You must be a game maker to run this command.")
         return
-    await ctx.defer(ephemeral=True)
+    await ctx.defer(ephemeral=False)
     model = cur.execute("SELECT llm_model FROM settings WHERE guild_id = ?;", (guild.id,)).fetchall()[0][0]
     api_key = cur.execute("SELECT api_key FROM settings WHERE guild_id = ?;", (guild.id,)).fetchall()[0][0]
+
+    tribute_id = cur.execute("SELECT tribute_role FROM settings WHERE guild_id = ?;", (guild.id,)).fetchall()[0][0]
+
+    tribute_role = guild.get_role(int(tribute_id))
+    users = [m.name for m in tribute_role.members]
 
     completion = await acompletion(
         model=model,
         api_key=api_key,
-        temperature=2,
-        max_tokens=250,
-        messages=[{"role": "user", "content": "tell the user -in a quirky way- that this function is NOT implemented yet, ocasionally using funny math related jokes, preferably from a pre-calc class. be AS FUNNY AS POSSIBLE, APPEALING TO AN AUDIENCE OF HIGH-SCHOOLERS"}]
+        temperature=1,
+        response_format=ResponseSchema,
+        max_tokens=4096,
+        messages=[
+            {
+                "role": "system", 
+                "content": SYSTEM_PROMPT
+            },
+            {
+                "role": "user",
+                "content": str(users) + "\nStart on day 1 at the cornucopia."
+            }
+            ]
     )
-    response = completion.choices[0].message.content
-    await ctx.followup.send(response)
+    response_raw = completion.choices[0].message.content
+    response: ResponseSchema = ResponseSchema.model_validate_json(response_raw)
+    # for e in test.events:
+    #     print(f"EVENT: {str(e.summary)}")
+    events = response.events
+    events_string =  "\n\n".join([str(e.summary) + f" @ {str(e.time.hour)}:{str(e.time.minute)}" for e in events])
+    await ctx.followup.send(events_string, ephemeral=False)
 print("Running the bot...")
 bot.run(secrets.BOT_TOKEN)

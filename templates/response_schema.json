@@ -1,0 +1,40 @@
+{
+    "type": "json_schema",
+    "strict": true,
+    "json_schema": {
+        "type": "object",
+        "properties": {
+        "day": {
+            "type": "integer"
+        },
+        "events": {
+            "type": "array",
+            "items": {
+            "type": "object",
+            "properties": {
+                "summary": {
+                "type": "string"
+                },
+                "tributes_involved": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                    "tribute_name": {
+                        "type": "string"
+                    },
+                    "tribute_new_status": {
+                        "type": "string"
+                    },
+                    "tribute_alive": {
+                        "type": "boolean"
+                    }
+                    }
+                }
+                }
+            }
+            }
+        }
+        }
+    }
+}
