@@ -1,7 +1,8 @@
 import discord
 from litellm import acompletion
 from utils import secrets
-from views.setup_flow import SetupFlow  # Make sure the class name matches exactly
+from views.guild_setup_flow import SetupFlow
+from views.game_setup_flow import GameFlow
 import json
 import sqlite3
 from  templates.response_schema import ResponseSchema
@@ -58,8 +59,12 @@ async def create_game(ctx: discord.ApplicationContext):
     tribute_id = cur.execute("SELECT tribute_role FROM settings WHERE guild_id = ?;", (guild.id,)).fetchall()[0][0]
 
     tribute_role = guild.get_role(int(tribute_id))
-    users = [m.id for m in tribute_role.members]
-    await ctx.respond(users)
+    users = tribute_role.members
+
+    for u in users:
+        view = GameFlow()
+        await u.send("We regret to inform you that you have been chosen to participate in the Hunger Games. Please confirm your identity.", view=view)
+    await ctx.respond("Sent messages to all tributes.")
     
 @bot.slash_command(name="start_game", description="Start a game", guild_ids=[1344427022377549946,])
 async def start_game(ctx: discord.ApplicationContext):
@@ -72,10 +77,10 @@ async def start_game(ctx: discord.ApplicationContext):
     model = cur.execute("SELECT llm_model FROM settings WHERE guild_id = ?;", (guild.id,)).fetchall()[0][0]
     api_key = cur.execute("SELECT api_key FROM settings WHERE guild_id = ?;", (guild.id,)).fetchall()[0][0]
 
-    tribute_id = cur.execute("SELECT tribute_role FROM settings WHERE guild_id = ?;", (guild.id,)).fetchall()[0][0]
+    tribute_role_id = cur.execute("SELECT tribute_role FROM settings WHERE guild_id = ?;", (guild.id,)).fetchall()[0][0]
 
-    tribute_role = guild.get_role(int(tribute_id))
-    users = [m.name for m in tribute_role.members]
+    tribute_role = guild.get_role(int(tribute_role_id))
+    users = tribute_role.members
 
     completion = await acompletion(
         model=model,
@@ -95,6 +100,7 @@ async def start_game(ctx: discord.ApplicationContext):
             ]
     )
     response_raw = completion.choices[0].message.content
+    print(response_raw)
     response: ResponseSchema = ResponseSchema.model_validate_json(response_raw)
     # for e in test.events:
     #     print(f"EVENT: {str(e.summary)}")
