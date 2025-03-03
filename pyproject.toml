@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "inflect>=7.5.0",
     "litellm>=1.61.17",
     "py-cord>=2.6.1",
     "python-decouple>=3.8",

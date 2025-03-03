@@ -11,6 +11,7 @@ cur = con.cursor()
 # Required tables: guilds, settings, games, tributes
 
 # Get a list of all table names as strings
+# TODO: this might(?) run every import of connector
 tables_result = cur.execute("SELECT name FROM sqlite_master WHERE type='table';").fetchall()
 table_names = [table[0] for table in tables_result]
 
@@ -40,7 +41,8 @@ if 'games' not in table_names:
         CREATE TABLE IF NOT EXISTS games (
             game_id INTEGER PRIMARY KEY UNIQUE ,
             guild_id INTEGER,
-            game_name TEXT,
+            game_num INTEGER,
+            status int,
             created_on TIMESTAMP,
             started_on TIMESTAMP
         );
@@ -48,7 +50,7 @@ if 'games' not in table_names:
 if 'tributes' not in table_names:
     cur.execute('''
         CREATE TABLE IF NOT EXISTS tributes (
-            tribute_id INTEGER PRIMARY KEY UNIQUE,
+            tribute_id INTEGER PRIMARY KEY UNIQUE AUTO_INCREMENT,
             game_id INTEGER,
             handle TEXT,
             nickname TEXT,

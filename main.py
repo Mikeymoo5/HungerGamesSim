@@ -2,10 +2,11 @@ import discord
 from litellm import acompletion
 from utils import secrets
 from views.guild_setup_flow import SetupFlow
-from views.game_setup_flow import GameFlow
+from views.tribute_setup_flow import TributeSetupFlow
 import json
 import sqlite3
 from  templates.response_schema import ResponseSchema
+import inflect
 
 # Init the discord bot
 intents = discord.Intents.default()
@@ -22,6 +23,9 @@ SYSTEM_PROMPT: str = None
 with open('templates/system_prompt.txt') as f:
     SYSTEM_PROMPT = f.read()
     f.close()
+
+# Inflection engine
+I_ENGINE = inflect.engine()
 
 # Load the response schema
 # RESPONSE_SCHEMA: json = None
@@ -56,15 +60,20 @@ async def create_game(ctx: discord.ApplicationContext):
         await ctx.respond("You must be a game maker to run this command.")
         return
     
-    tribute_id = cur.execute("SELECT tribute_role FROM settings WHERE guild_id = ?;", (guild.id,)).fetchall()[0][0]
+    # TODO: Implement game setup wizard
 
+    # Create the game in the database
+    cur.execute("INSERT INTO games (guild_id, game_num, status, created_on, started_on) VALUES (?, ?, ?, ?, ?)")
+
+    # Send messages to users asking for name and pronouns
+    tribute_id = cur.execute("SELECT tribute_role FROM settings WHERE guild_id = ?;", (guild.id,)).fetchall()[0][0]
     tribute_role = guild.get_role(int(tribute_id))
     users = tribute_role.members
-
+    game_num = 1
     for u in users:
-        view = GameFlow()
-        await u.send("We regret to inform you that you have been chosen to participate in the Hunger Games. Please confirm your identity.", view=view)
-    await ctx.respond("Sent messages to all tributes.")
+        view = TributeSetupFlow()
+        await u.send(f"{u.mention} has been selected to partake in *{guild.name}'s {I_ENGINE.ordinal(game_num)} annual Hunger Game.", view=view)
+    await ctx.respond("The game has been created, and messages have been sent to all tributes.")
     
 @bot.slash_command(name="start_game", description="Start a game", guild_ids=[1344427022377549946,])
 async def start_game(ctx: discord.ApplicationContext):
