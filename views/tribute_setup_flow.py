@@ -1,8 +1,9 @@
 import discord
 from utils.init_tribute import init_tribute
 class TributeSetupFlow(discord.ui.View):
-    def __init__(self):
+    def __init__(self, game_id):
         super().__init__(timeout=604800) # Seven days
+        self.game_id = game_id
 
     @discord.ui.button(label="Identify", style=discord.ButtonStyle.green)
     async def setup_button(
@@ -11,7 +12,14 @@ class TributeSetupFlow(discord.ui.View):
         modal = TributeSetupModal(title="Identity")
         await interaction.response.send_modal(modal)
         await modal.wait()
-        init_tribute(interaction.user, modal.nickname, modal.pronouns)
+        
+        init_tribute(
+            user=interaction.user,
+            guild=interaction.guild,
+            game_id=self.game_id,
+            nickname=modal.nickname,
+            pronouns=modal.pronouns
+        )
         await interaction.followup.send("Your identity has been confirmed. Happy Hunger Games, and may the odds be *ever* in your favor.")
 
 class TributeSetupModal(discord.ui.Modal):
@@ -27,6 +35,6 @@ class TributeSetupModal(discord.ui.Modal):
     async def callback(self, interaction: discord.Interaction):
         self.nickname = self.children[0].value
         self.pronouns = self.children[1].value
+        
         await interaction.response.defer(ephemeral=True)
-
         self.stop()
