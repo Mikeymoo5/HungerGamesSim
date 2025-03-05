@@ -55,7 +55,7 @@ if 'tributes' not in table_names:
         CREATE TABLE IF NOT EXISTS tributes (
             tribute_id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
             game_id INTEGER,
-            handle TEXT,
+            user_id INTEGER,
             nickname TEXT,
             pronouns TEXT,
             attribute TEXT,
