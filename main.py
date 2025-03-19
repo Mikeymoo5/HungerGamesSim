@@ -120,7 +120,6 @@ async def start_game(ctx: discord.ApplicationContext, game_id: int):
         print(f"IHATEMYSELF STRING: {ihatemyselfstring}")
         await ctx.respond(f"Unable to start the game. The following tributes have yet to verify their identity: {ihatemyselfstring}")
         return
-    print(f"AWAITING ON THESE TRIBUTES: {awaiting_tributes}")
     game = cur.execute("SELECT * FROM games WHERE game_id = ?;", (game_id,)).fetchone()
     description = game['arena']
     
