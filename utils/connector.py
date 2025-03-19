@@ -56,6 +56,7 @@ if 'tributes' not in table_names:
             tribute_id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
             game_id INTEGER,
             user_id INTEGER,
+            registered BOOLEAN,
             nickname TEXT,
             pronouns TEXT,
             attribute TEXT,
@@ -66,15 +67,5 @@ if 'tributes' not in table_names:
         );
     ''')
 
-if 'messaged_users' not in table_names:
-    cur.execute('''
-        CREATE TABLE IF NOT EXISTS messaged_users (
-            game_id INTEGER PRIMARY KEY,
-            user_id INTEGER,
-            registered BOOLEAN,
-            tribute_id INTEGER,
-            FOREIGN KEY(game_id) REFERENCES games(game_id)
-        )           
-    ''')
 # Commit the changes
 con.commit()

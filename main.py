@@ -6,6 +6,7 @@ from views.tribute_setup_flow import TributeSetupFlow
 from views.game_setup_flow import GameModal
 import json
 import sqlite3
+from utils.connector import cur, con
 from  templates.response_schema import ResponseSchema
 import inflect
 import time
@@ -17,8 +18,8 @@ intents.members = True
 bot = discord.Bot(intents=intents)
 
 # Connect to the database
-con = sqlite3.connect('database.db')
-cur = con.cursor()
+# con = sqlite3.connect('database.db')
+# cur = con.cursor()
 
 # Load the system prompt
 SYSTEM_PROMPT: str = None
@@ -81,11 +82,18 @@ async def create_game(ctx: discord.ApplicationContext):
 
     # Send messages to users asking for name and pronouns
     tribute_id = cur.execute("SELECT tribute_role FROM settings WHERE guild_id = ?;", (guild.id,)).fetchall()[0][0]
+    #TODO: tf is this
     tribute_role = guild.get_role(int(tribute_id))
     users = tribute_role.members
     game_num = 1
     for u in users:
         view = TributeSetupFlow(game_id) #TODO: pass in the game_id
+
+        # Creates a row in the tributes table - This is done prior to the tribute's input to keep tally of who has yet to enter their information
+        cur.execute('''
+            INSERT INTO tributes (game_id, user_id, registered) VALUES (?, ?, 0)
+        ''', (game_id, u.id,))
+        con.commit()
         await u.send(f"{u.mention} has been selected to partake in *{guild.name}'s {I_ENGINE.ordinal(game_num)} annual Hunger Game.", view=view)
     await ctx.respond(f"The game has been created, and messages have been sent to all tributes. Your game ID is {game_id}. Please remember it as you cannot start the game without it.")
     
@@ -93,6 +101,7 @@ async def create_game(ctx: discord.ApplicationContext):
 @discord.option("game_id", type=discord.SlashCommandOptionType.integer)
 async def start_game(ctx: discord.ApplicationContext, game_id: int):
     #TODO: Run tribute check. Convert to view with cancel and start anyways button if not all tributes are setup.
+    #TODO: Make sure the guild this is being started in is the guild the game was created in
     guild: discord.Guild = ctx.guild
     gm_id = cur.execute("SELECT gamemaker_role FROM settings WHERE guild_id = ?;", (guild.id,)).fetchall()[0][0]
     if not any(role.id == int(gm_id) for role in ctx.author.roles):
@@ -100,6 +109,18 @@ async def start_game(ctx: discord.ApplicationContext, game_id: int):
         return
     await ctx.defer(ephemeral=False)
 
+    # Horrible naming scheme. A list of tributes who have yet to fill out the tribute modal
+    awaiting_tributes = cur.execute("SELECT * FROM tributes WHERE game_id = ? AND registered = 0", (game_id,)).fetchall()
+    if len(awaiting_tributes) > 0:
+        ihatemyselfstring = ""
+        for row in awaiting_tributes:
+            mention = bot.get_user(int(row['user_id'])).name
+            ihatemyselfstring = ihatemyselfstring + f"{mention},"
+        #TODO: make the last user have ,and instead of , and also fix the beginning
+        print(f"IHATEMYSELF STRING: {ihatemyselfstring}")
+        await ctx.respond(f"Unable to start the game. The following tributes have yet to verify their identity: {ihatemyselfstring}")
+        return
+    print(f"AWAITING ON THESE TRIBUTES: {awaiting_tributes}")
     game = cur.execute("SELECT * FROM games WHERE game_id = ?;", (game_id,)).fetchone()
     description = game['arena']
     

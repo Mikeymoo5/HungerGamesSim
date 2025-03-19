@@ -6,13 +6,10 @@ def init_tribute(
     game_id: int,
     nickname: str,
     pronouns: str,
-) -> int:
-    #TODO: go through messaged_tributes list and update status
-    messaged_usr = cur.execute('''
-        INSERT INTO (registered) SELECT * FROM messaged_users WHERE game_id = ? AND 
-    ''')
-    cur.
+) -> None:
     cur.execute('''
-        INSERT INTO tributes (game_id, user_id, nickname, pronouns) VALUES (?, ?, ?, ?)
-    ''', (game_id, user.id, nickname, pronouns,))
-    return cur.lastrowid
+        UPDATE tributes 
+        SET nickname = ?, pronouns = ?, registered = 1
+        WHERE game_id = ? AND user_id = ?
+    ''', (nickname, pronouns, game_id, user.id))
+    # return cur.lastrowid
